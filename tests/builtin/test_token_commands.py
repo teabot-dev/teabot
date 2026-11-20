@@ -8,8 +8,8 @@ import pytest
 from pydantic import BaseModel
 
 from teabot.builtin.tokens import Created, TokenInfo, TokenList, render_created, render_list
-from teabot.core.registry import ActionFailed, Refused
-from teabot.sdk import ActionContext, ActionSpec, Manifest, Registrar, Risk
+from teabot.core.registry import ActionFailed, Call, Refused
+from teabot.sdk import ActionContext, ActionSpec, Actor, Manifest, Registrar, Risk
 from teabot.testing import PluginHarness
 
 
@@ -159,9 +159,11 @@ async def test_revoke_suggests_the_members_own_tokens(harness: PluginHarness) ->
     member = harness.guild.add_member(discord.Permissions.none())
     theirs = await create(harness, user=member.id)
     await create(harness)
-    choices = await harness.registry.suggest("tokens.revoke", harness.guild.id, member.id, "token_id", "cla")
+    choices = await harness.registry.suggest(
+        Call("tokens.revoke", harness.guild.id, Actor(member.id, "slash"), {}), "token_id", "cla"
+    )
     assert [(c.name, c.value) for c in choices] == [(f"claude ({theirs.token_id})", theirs.token_id)]
     everyone = await harness.registry.suggest(
-        "tokens.revoke", harness.guild.id, harness.member.id, "token_id", ""
+        Call("tokens.revoke", harness.guild.id, Actor(harness.member.id, "slash"), {}), "token_id", ""
     )
     assert len(everyone) == 2

@@ -7,8 +7,8 @@ import pytest
 from pydantic import BaseModel
 
 from teabot.auth.tokens import NewToken
-from teabot.core.registry import ActionFailed, Refused
-from teabot.sdk import ActionContext, ActionSpec, Manifest, Registrar, Risk
+from teabot.core.registry import ActionFailed, Call, Refused
+from teabot.sdk import ActionContext, ActionSpec, Actor, Manifest, Registrar, Risk
 from teabot.testing import FakeCategory, FakeChannel, FakeVoiceChannel, PluginHarness
 
 
@@ -162,6 +162,8 @@ async def test_job_status_suggests_the_members_own_jobs_newest_first(harness: Pl
     member = harness.guild.add_member(discord.Permissions.none())
     first, second = await job(harness, started_by=member.id), await job(harness, started_by=member.id)
     await job(harness, started_by=harness.member.id)
-    choices = await harness.registry.suggest("admin.job_status", harness.guild.id, member.id, "job_id", "")
+    choices = await harness.registry.suggest(
+        Call("admin.job_status", harness.guild.id, Actor(member.id, "slash"), {}), "job_id", ""
+    )
     assert [c.value for c in choices] == [second, first]
     assert choices[0].name == f"{second} echo.draw (pending)"

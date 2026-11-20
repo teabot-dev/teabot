@@ -330,11 +330,18 @@ class PluginHarness:
         await self.run_jobs()
 
     async def autocomplete(
-        self, action: Action[Any, ..., Any], option: str, typed: str = ""
+        self,
+        action: Action[Any, ..., Any],
+        option: str,
+        typed: str = "",
+        *,
+        filled: Mapping[str, Any] | None = None,
     ) -> list[Choice[Any]]:
         """The suggestions a member sees for `option` after typing `typed`, through the real path: nothing when
-        the action would be refused, or its suggester fails."""
-        return await self.registry.suggest(action.name, self.guild.id, self.member.id, option, typed)
+        the action would be refused, or its suggester fails. `filled` holds the options the member has filled in
+        already, which the suggester reads as `ctx.filled`."""
+        call = Call(action.name, self.guild.id, Actor(self.member.id, "slash"), dict(filled or {}))
+        return await self.registry.suggest(call, option, typed)
 
     def as_member(self, member: FakeMember) -> "MemberCalls":
         """Calls made as `member` rather than the first member."""
@@ -464,13 +471,17 @@ class MemberCalls:
         return self._shown(bound.action, out)
 
     async def autocomplete(
-        self, action: Action[Any, ..., Any], option: str, typed: str = ""
+        self,
+        action: Action[Any, ..., Any],
+        option: str,
+        typed: str = "",
+        *,
+        filled: Mapping[str, Any] | None = None,
     ) -> list[Choice[Any]]:
-        """The suggestions this member sees for `option` after typing `typed`: none when they may not run the
-        action."""
-        return await self.harness.registry.suggest(
-            action.name, self.harness.guild.id, self.user, option, typed
-        )
+        """The suggestions this member sees for `option` after typing `typed`, with `filled` as the options filled
+        in already: none when they may not run the action."""
+        call = Call(action.name, self.harness.guild.id, Actor(self.user, "slash"), dict(filled or {}))
+        return await self.harness.registry.suggest(call, option, typed)
 
     def _shown(self, action: str, out: BaseModel) -> str:
         spec = self.harness.registry.actions[action]

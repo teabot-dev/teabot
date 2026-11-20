@@ -109,6 +109,7 @@ async def running(ctx: Ctx, typed: str) -> list[Choice[int]]:
 ```
 
 - `@action.autocomplete("option")` suggests values for a `str` or `int` option, or a list of them, as the member types: up to 25 `Choice(name, value)`s, from what has been typed so far. A list's numbered options share it.
+- `ctx.filled` holds the options the member filled in before this one, by input name, as Discord sent them, so a suggester can depend on them, such as listing the options of the poll already chosen. Discord sends only those filled in so far, so check that the one you need is there. Added in 1.14.
 - Suggest an ID as a `str` value, such as `Choice(member.display_name, str(member.id))`, for the reason above. For channels, roles and members, Discord's own pickers already suggest, so an option of those types needs no suggester.
 - It runs as the member, without the audit log, and must answer within Discord's three seconds. When the action would be refused, or the function fails or is slow, the member sees no suggestions.
 - One function can suggest for several actions: stack the decorators.
@@ -146,6 +147,7 @@ async def plan_cancel(ctx: Ctx, raffle: int) -> Diff:
 - `ctx.db`: the plugin's database, as its own role in its own schema.
 - `ctx.now`: the time. Read the clock only through it, since tests move it.
 - `ctx.diff`: in a destructive action's apply, the confirmed plan, and an empty `Diff` everywhere else.
+- `ctx.filled`: in a suggester, the options the member filled in so far, and empty everywhere else. [Suggestions](#suggestions) says how.
 - `await ctx.report(progress)`: progress for `/admin job_status`.
 - `ctx.voice`: the server's voice connection, which the plugin joins, plays through and leaves. [Voice](#voice) says how.
 - `ctx.members`: the server's member directory, for a plugin that declares it. [The member directory](#the-member-directory) says how.
@@ -655,7 +657,7 @@ async def digest(ctx: Ctx) -> None:
 | `harness.voice_connection` | the bot's `FakeVoiceConnection` once the plugin has joined: its `channel`, `paused`, and `tracks`; `take(n)` reads packets of the audio playing as the player would |
 | `harness.end_track(error=None)` | ends the audio playing as running out, or failing, would, and runs `on_track_end` |
 | `harness.restart_voice()` | drops the voice connection as a restart would, and runs `on_voice_resume` |
-| `harness.autocomplete(action, "option", typed)` | the suggestions a member sees after typing `typed`; `as_member(m).autocomplete(...)` as someone else, who sees none if they may not run the action |
+| `harness.autocomplete(action, "option", typed, filled={...})` | the suggestions a member sees after typing `typed`, with `filled` as the options filled in before it; `as_member(m).autocomplete(...)` as someone else, who sees none if they may not run the action |
 | `harness.run_job(job.bind(...))` | runs the job now, as if scheduled again; use it after the job's first run, then check that nothing changed again |
 | `harness.advance(minutes=...)` | moves the clock for `ctx.now`, `now()` in the plugin's SQL, and when jobs fall due; the jobs then due run at the next `run_jobs` |
 | `harness.configure(Cfg(...))` | stores the server's config, as an admin would |

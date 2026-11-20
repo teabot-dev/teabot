@@ -7,7 +7,8 @@ import pytest
 from pydantic import Field
 
 from teabot.adapters.schema import fold_lists, mcp_input_schema, slash_fields
-from teabot.sdk import Choice, Context, EmptyConfig, Option, Plugin, Role, Select, Surface, TextChannel
+from teabot.core.registry import Call
+from teabot.sdk import Actor, Choice, Context, EmptyConfig, Option, Plugin, Role, Select, Surface, TextChannel
 from teabot.sdk._signature import SignatureError
 from teabot.sdk._views import _menu  # pyright: ignore[reportPrivateUsage]
 from teabot.testing import FakeChannel, HarnessFactory
@@ -206,8 +207,39 @@ async def test_a_member_who_may_not_run_the_action_gets_no_suggestions(
 ) -> None:
     harness = await teabot_harness(picker)
     member = harness.guild.add_member(discord.Permissions.none())
-    found = await harness.registry.suggest("suggest.find", harness.guild.id, member.id, "name", "ra")
+    found = await harness.registry.suggest(
+        Call("suggest.find", harness.guild.id, Actor(member.id, "slash"), {}), "name", "ra"
+    )
     assert found == []
+
+
+@picker.action()
+async def pick_item(ctx: PCtx, kind: str, item: str) -> str:
+    """Pick an item of a kind.
+
+    Args:
+        kind: The kind of item
+        item: The item
+    """
+    return item
+
+
+@pick_item.autocomplete("item")
+async def items(ctx: PCtx, typed: str) -> list[Choice[str]]:
+    kinds = {"fruit": ["apple", "pear"], "tool": ["axe", "pick"]}
+    return [Choice(n, n) for n in kinds.get(str(ctx.filled.get("kind")), []) if n.startswith(typed)]
+
+
+async def test_a_suggester_sees_the_options_filled_in_before_it(teabot_harness: HarnessFactory) -> None:
+    harness = await teabot_harness(picker)
+    assert [c.value for c in await harness.autocomplete(pick_item, "item", filled={"kind": "tool"})] == [
+        "axe",
+        "pick",
+    ]
+    assert [
+        c.value for c in await harness.autocomplete(pick_item, "item", "p", filled={"kind": "fruit"})
+    ] == ["pear"]
+    assert await harness.autocomplete(pick_item, "item") == []
 
 
 def test_suggestions_are_for_options_the_action_has() -> None:

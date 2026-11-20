@@ -71,7 +71,9 @@ SHOUT = ActionSpec(
 class FakeRegistry:
     actions: dict[str, ActionSpec[Any, Any]]
     calls: list[Call] = field(default_factory=list[Call])
-    suggested: list[tuple[str, str, str]] = field(default_factory=list[tuple[str, str, str]])
+    suggested: list[tuple[str, str, str, dict[str, Any]]] = field(
+        default_factory=list[tuple[str, str, str, dict[str, Any]]]
+    )
     result: BaseModel | Exception | None = None
 
     async def invoke(self, call: Call) -> BaseModel:
@@ -81,10 +83,8 @@ class FakeRegistry:
         assert self.result is not None
         return self.result
 
-    async def suggest(
-        self, action: str, guild_id: int, user_id: int, option: str, typed: str
-    ) -> list[Choice[Any]]:
-        self.suggested.append((action, option, typed))
+    async def suggest(self, call: Call, option: str, typed: str) -> list[Choice[Any]]:
+        self.suggested.append((call.action, option, typed, dict(call.raw_input)))
         return [Choice(f"{typed} one", "1"), Choice(f"{typed} two", "2")]
 
 
@@ -372,12 +372,16 @@ async def test_autocomplete_answers_with_the_actions_suggestions(
     data = {
         "name": "announcements",
         "options": [
-            {"type": 1, "name": "ping", "options": [{"name": "loud", "value": "ye", "focused": True}]}
+            {
+                "type": 1,
+                "name": "ping",
+                "options": [{"name": "tags", "value": "a"}, {"name": "loud", "value": "ye", "focused": True}],
+            }
         ],
     }
     interaction = FakeInteraction(discord.InteractionType.autocomplete, data)
     await r.handle(interaction)
-    assert registry.suggested == [("announcements.ping", "loud", "ye")]
+    assert registry.suggested == [("announcements.ping", "loud", "ye", {"tags": "a"})]
     ((kind, shown),) = interaction.events
     assert kind == "autocomplete" and [(c.name, c.value) for c in shown] == [("ye one", "1"), ("ye two", "2")]
 

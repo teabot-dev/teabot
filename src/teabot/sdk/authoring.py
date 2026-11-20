@@ -126,6 +126,12 @@ class Context[C: BaseModel](Protocol):
         ...
 
     @property
+    def filled(self) -> Mapping[str, Any]:
+        """In an `@action.autocomplete` function, the other options the member has filled in so far, by input name,
+        as Discord sent them; empty elsewhere. A suggester for a poll's option can read the poll chosen here."""
+        ...
+
+    @property
     def voice(self) -> Voice:
         """The server's voice connection, which the plugin joins, plays through and leaves (D54)."""
         ...
@@ -201,6 +207,7 @@ class _Context:
     grants: Any = None
     writes: frozenset[str] = frozenset()
     open_labels: Callable[[], Labels] | None = None
+    filled: Mapping[str, Any] = field(default_factory=dict[str, Any])
 
     @property
     def db(self) -> Db:
@@ -303,8 +310,9 @@ class Action[C: BaseModel, **P, R]:
         Callable[[Context[C], str], Awaitable[list[Choice[T]]]],
     ]:
         """Suggest values for one of the action's options as the member types, such as running giveaways for
-        `giveaway`. The function receives what has been typed so far, and returns up to 25 `Choice`s. It runs as
-        the member, without the audit log, and must answer within Discord's three seconds."""
+        `giveaway`. The function receives what has been typed so far, and returns up to 25 `Choice`s; the options
+        filled in before it are `ctx.filled`. It runs as the member, without the audit log, and must answer within
+        Discord's three seconds."""
         if option not in self.inputs.model.model_fields:
             raise SignatureError(f"{self.name} has no option {option} to suggest values for")
 
@@ -476,6 +484,7 @@ def _context_of(
         audit_id=getattr(ctx, "audit_id", None),
         writes=writes,
         open_labels=_labels_of(ctx),
+        filled=getattr(ctx, "filled", None) or {},
     )
 
 

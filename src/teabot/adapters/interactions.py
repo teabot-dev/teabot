@@ -53,9 +53,7 @@ class Invoker(Protocol):
 
     async def invoke(self, call: Call) -> BaseModel: ...
 
-    async def suggest(
-        self, action: str, guild_id: int, user_id: int, option: str, typed: str
-    ) -> list[Choice[Any]]: ...
+    async def suggest(self, call: Call, option: str, typed: str) -> list[Choice[Any]]: ...
 
 
 def default_embed(spec: ActionSpec[Any, Any], output: BaseModel) -> discord.Embed:
@@ -248,9 +246,11 @@ class InteractionRouter:
         if focused is not None and spec is not None and interaction.guild_id is not None:
             option = field_of_option(spec.input, str(focused["name"]))
             typed = str(focused.get("value", ""))
-            choices = await self.registry.suggest(
-                name, interaction.guild_id, interaction.user.id, option, typed
-            )
+            # The options filled in before this one, as the action takes them, so a suggester can depend on them.
+            given = {str(o["name"]): o.get("value") for o in sub.get("options", []) if not o.get("focused")}
+            filled = fold_lists(spec.input, given)
+            call = Call(name, interaction.guild_id, Actor(interaction.user.id, "slash"), filled)
+            choices = await self.registry.suggest(call, option, typed)
         shown = [discord.app_commands.Choice(name=c.name[:100], value=c.value) for c in choices[:25]]
         await interaction.response.autocomplete(shown)
 

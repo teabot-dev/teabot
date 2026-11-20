@@ -10,7 +10,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import Any, Literal, Protocol
 
@@ -177,6 +177,8 @@ class PluginActionContext:
     open_labels: Callable[[], Any] | None = None
     # In an apply, its audit row, which work it hands off keeps as its grant.
     audit_id: int | None = None
+    # In a suggester, the other options the member has filled in, by input name.
+    filled: Mapping[str, Any] = field(default_factory=dict[str, Any])
 
     async def report(self, progress: Mapping[str, Any], /) -> None:
         """A destructive action's progress, written to its apply job; elsewhere nothing (D21)."""
@@ -374,25 +376,23 @@ class Registry:
         )
         return context, data
 
-    async def suggest(
-        self, action: str, guild_id: int, user_id: int, option: str, typed: str
-    ) -> list[Choice[Any]]:
-        """Suggestions for one option of an action, as a member types it. Nothing is audited, and anything that
-        would refuse the action, or a suggester that fails or takes past Discord's three seconds, suggests nothing."""
-        spec = self.actions.get(action)
+    async def suggest(self, call: Call, option: str, typed: str) -> list[Choice[Any]]:
+        """Suggestions for one option of an action, as a member types it. `call.raw_input` holds the options filled
+        in so far, which the suggester reads as `ctx.filled`. Nothing is audited, and anything that would refuse
+        the action, or a suggester that fails or takes past Discord's three seconds, suggests nothing."""
+        spec = self.actions.get(call.action)
         suggester = spec.suggest.get(option) if spec is not None else None
-        guild = self.client.get_guild(guild_id)
+        guild = self.client.get_guild(call.guild_id)
         if spec is None or suggester is None or guild is None:
             return []
         try:
-            ctx, _ = await self.prepare(
-                spec, Call(action, guild_id, Actor(user_id, "slash"), {}), guild, check_input=False
-            )
+            ctx, _ = await self.prepare(spec, call, guild, check_input=False)
+            ctx = replace(ctx, filled=dict(call.raw_input))
             return await asyncio.wait_for(suggester(ctx, typed), SUGGEST_SECONDS)
         except Refused:
             return []
         except Exception:
-            log.exception("suggestions failed", extra={"action": action, "option": option})
+            log.exception("suggestions failed", extra={"action": call.action, "option": option})
             return []
 
     async def _check_permission(self, spec: ActionSpec[Any, Any], call: Call, guild: Guild) -> None:

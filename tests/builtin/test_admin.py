@@ -24,8 +24,8 @@ from teabot.builtin.admin import (
     render_toggled,
     state_here,
 )
-from teabot.core.registry import ActionFailed, Refused
-from teabot.sdk import ActionContext, ActionSpec, Manifest, Registrar, Risk
+from teabot.core.registry import ActionFailed, Call, Refused
+from teabot.sdk import ActionContext, ActionSpec, Actor, Manifest, Registrar, Risk
 from teabot.testing import FakeChannel, PluginHarness
 
 
@@ -225,7 +225,9 @@ async def test_enabling_or_disabling_queues_a_command_sync_here(harness: PluginH
 
 
 async def suggested(harness: PluginHarness, action: str, option: str, typed: str = "") -> list[Any]:
-    choices = await harness.registry.suggest(action, harness.guild.id, harness.member.id, option, typed)
+    choices = await harness.registry.suggest(
+        Call(action, harness.guild.id, Actor(harness.member.id, "slash"), {}), option, typed
+    )
     return [c.value for c in choices]
 
 

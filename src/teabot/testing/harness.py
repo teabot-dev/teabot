@@ -267,6 +267,20 @@ class PluginHarness:
         }
         await self._fire("reaction_remove" if remove else "reaction_add", payload)
 
+    def vote(self, message: FakeMessage, member: FakeMember, answer: str, *, remove: bool = False) -> None:
+        """Add `member`'s vote for the answer whose text is `answer` on a fake message's poll, or with `remove`
+        take it off. In a single-choice poll a second vote moves the first, as in Discord."""
+        if message.poll is None:
+            raise ValueError("That message has no poll.")
+        message.poll.vote(member.id, answer, remove=remove)
+
+    def end_poll(self, message: FakeMessage, *, final: bool = True) -> None:
+        """End a fake message's poll now, as when time runs out, with its counts finalised unless `final=False`,
+        as for the minute or so before Discord finalises them."""
+        if message.poll is None:
+            raise ValueError("That message has no poll.")
+        message.poll.end(final=final)
+
     async def change_roles(
         self,
         member: FakeMember,

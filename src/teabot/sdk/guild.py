@@ -17,12 +17,15 @@ plain words. Changes carry a reason for Discord's audit log, "via teabot: <actio
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 import discord
 
 from teabot.sdk.components import Button, Select
 from teabot.sdk.permissions import Permission
+
+if TYPE_CHECKING:
+    from teabot.sdk.polls import Poll, SentPoll
 
 # Discord's IDs count milliseconds from the start of 2015 in their top bits.
 DISCORD_EPOCH_MS = 1_420_070_400_000
@@ -333,6 +336,11 @@ class Message(Protocol):
         """A link to the message."""
         ...
 
+    @property
+    def poll_ends_at(self) -> datetime | None:
+        """When Discord ends the message's poll, or None for a message with no poll."""
+        ...
+
     async def edit(
         self,
         content: str | None = None,
@@ -412,10 +420,33 @@ class TextChannel(Protocol):
         files: Sequence[File] = (),
         buttons: Sequence[Button] = (),
         select: Select | None = None,
+        ping_roles: Iterable[int] = (),
+        poll: "Poll | None" = None,
     ) -> Message:
         """Post a message. Nobody is mentioned, whatever the text says, except the members whose IDs are in
-        `ping`. Up to 25 `buttons` go under it, five to a row, or a `select` menu and up to 20 buttons. Raises
-        `ActionError` when the bot may not post here."""
+        `ping`, and the roles whose IDs are in `ping_roles`, whose mentions are written before the content. Check
+        a role ping first with `can_mention`. Up to 25 `buttons` go under it, five to a row, or a `select` menu and
+        up to 20 buttons. Raises `ActionError` when the bot may not post here.
+
+        With a `poll`, Discord's own poll goes with the message, and no buttons or menu may. The bot's permissions
+        are checked first: Send Messages, or Send Messages in Threads in a thread, Send Polls, and View Channel and
+        Read Message History, so the poll can be read later. A missing one raises `ActionError` naming it."""
+        ...
+
+    def can_mention(self, role: "Role", /, *, by: "Member | None" = None) -> str | None:
+        """Why a ping of `role` in this channel wouldn't work, or None when it would. `by` may ask for it when the
+        role is mentionable or they have Mention Everyone here; the bot can deliver it when the role is
+        mentionable or the bot has Mention Everyone here, and otherwise Discord drops it without a word."""
+        ...
+
+    async def read_poll(self, message_id: int, /) -> "SentPoll | None":
+        """A message's poll as Discord shows it now, anyone's, or None when the message is deleted or has no poll.
+        Raises `MessageHidden` when the bot can no longer see this channel or read its history."""
+        ...
+
+    async def end_poll(self, message_id: int, /) -> None:
+        """End a poll the bot sent, by its message's ID. Discord then finalises it, as when time runs out. Ending
+        one that has ended already does nothing; one whose message is deleted raises `MessageGone`."""
         ...
 
     async def get_message(self, message_id: int, /) -> Message | None:

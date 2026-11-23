@@ -6,6 +6,11 @@ Every release of `teabot` and the instance template, newest first. Up to 1.0.2, 
 
 ## Unreleased
 
+### Writing plugins
+
+- Discord's own polls: `channel.send(poll=Poll(...))` posts one, `channel.read_poll` reads its counts as a `SentPoll`, and `channel.end_poll` ends it early. `MessageHidden` tells a channel the bot can no longer see apart from a deleted message. `harness.vote` and `harness.end_poll` test them. See [Polls](https://teabot-dev.github.io/teabot/plugins/reference/#polls).
+- `channel.send(..., ping_roles=[...])` pings roles, and `channel.can_mention(role, by=member)` says whether such a ping would reach them.
+
 ## 1.15.0 - 2026-11-23
 
 ### Using teabot

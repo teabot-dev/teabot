@@ -45,6 +45,10 @@ The server (D45):
   role, channel or member pickers (its `SelectKind`), which fills a list input with what is chosen. A `Message`
   the bot sent can be edited or deleted.
 - `Choice`: one suggestion an action's `@action.autocomplete("option")` function gives as the member types.
+- `Poll`: Discord's own poll, which a channel's `send(poll=...)` posts. `read_poll` reads one as a `SentPoll`, its
+  `PollAnswer`s with their votes, and `end_poll` ends one early. `MessageHidden` says the bot can no longer see a
+  message's channel, and `MessageGone` that the message is deleted. A channel's `send` pings roles with
+  `ping_roles`, and `can_mention` says whether such a ping would work.
 
 Voice (D54):
 - `Voice`: the server's one voice connection, as `ctx.voice`: join a `VoiceChannel`, play `Packets` of Opus
@@ -138,6 +142,7 @@ from teabot.sdk.members import (
 from teabot.sdk.permissions import DANGEROUS, Permission
 from teabot.sdk.plans import Diff, DiffEntry, HandedOff
 from teabot.sdk.plugin import EmptyConfig, JobContext, JobHandler, LoadablePlugin, Manifest, Registrar
+from teabot.sdk.polls import MessageGone, MessageHidden, Poll, PollAnswer, SentPoll
 from teabot.sdk.settings import InstanceSettings
 from teabot.sdk.store import Store
 from teabot.sdk.voice import Packets, Voice, VoiceState
@@ -196,6 +201,8 @@ __all__ = [
     "Members",
     "Menu",
     "Message",
+    "MessageGone",
+    "MessageHidden",
     "NotAuthorized",
     "NotDeclared",
     "Option",
@@ -204,6 +211,8 @@ __all__ = [
     "PeopleFilter",
     "Permission",
     "Plugin",
+    "Poll",
+    "PollAnswer",
     "Post",
     "Queries",
     "Reaction",
@@ -219,6 +228,7 @@ __all__ = [
     "Scheduler",
     "Select",
     "SelectKind",
+    "SentPoll",
     "Store",
     "Surface",
     "TextChannel",

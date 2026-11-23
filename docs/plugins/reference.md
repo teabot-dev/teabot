@@ -226,8 +226,8 @@ Every operation acts with the bot's own power, so **the plugin decides who may u
 | `Member` | `name`, `display_name`, `roles` (highest first), `top_role`, `role_ids`, `joined_at`, `avatar_url`, `bot`, `timed_out_until` | `add_role(role, by=)`, `remove_role(role, by=)`, `set_nickname`, `timeout(timedelta)` up to 28 days, `remove_timeout`, `kick`, `send` a direct message |
 | `Role` | `name`, `position`, `permissions` (as `needs=` names them), `colour`, `managed`, `mentionable`, `hoisted` | |
 | `Guild` | `name`, `icon_url`, `owner_id`, `member_count`, `me` (the bot), `roles`, `channels` (any kind, each with its `kind`, `parent_id` and `nsfw`), `can_assign(role, by=, give=)` | `find_members(prefix)`, `add_role(user_id, role, by=)` and `remove_role(...)` by member ID, `ban(user_id, delete_message_days=)`, `unban`, `bans()` |
-| `Message` the bot sent | `id`, `channel_id`, `jump_url` | `edit`, which replaces its text, embed, buttons and files; `delete` |
-| `TextChannel` | `name`, `mention`, `read_message(id)` for anyone's message, `reactors(message_id, emoji)` for who reacted | `send`, `get_message(id)` for one of the bot's own posts |
+| `Message` the bot sent | `id`, `channel_id`, `jump_url`, `poll_ends_at` | `edit`, which replaces its text, embed, buttons and files; `delete` |
+| `TextChannel` | `name`, `mention`, `read_message(id)` for anyone's message, `reactors(message_id, emoji)` for who reacted, `read_poll(id)`, `can_mention(role, by=)` | `send`, `get_message(id)` for one of the bot's own posts, `end_poll(id)` |
 
 - Every change takes `reason=`, which Discord's audit log shows. Without one, it says which action asked and for whom.
 - The bot cannot manage a role at or above its own highest role, a managed role, or a member who outranks it, and it cannot kick, ban or rename the server's owner.
@@ -236,6 +236,25 @@ Every operation acts with the bot's own power, so **the plugin decides who may u
 - `DANGEROUS` names the permissions that act on others or the server, such as Administrator, Ban Members and Manage Roles, for a plugin that refuses roles granting them.
 - `get_channel` and `get_text_channel` find threads too, so a reaction or message in a thread leads to its channel. A thread is `nsfw` when the channel it is in is.
 - `read_message(id)` returns any message in the channel as a `ReceivedMessage`, or None when it is gone. `reactors(message_id, emoji)` returns the IDs of the people who reacted with `emoji`, bots left out, oldest first: count from it, and a reaction given while teabot was down still counts. Both added in 1.7.
+- **Pinging roles.** `send(..., ping_roles=[role_id])` pings those roles, writing their mentions before the text, and still nobody else. Discord drops a ping of a role that can't be mentioned unless the sender has Mention Everyone in the channel, without a word, so check first: `channel.can_mention(role, by=member)` returns why the ping wouldn't work, for the member asking or for the bot, or `None`. Added in 1.16.
+
+### Polls
+
+Added in 1.16. Discord's own polls: members vote with a click, change their vote, and see the counts, and Discord ends the poll on time and posts its results.
+
+```python
+from datetime import timedelta
+from teabot.sdk import Poll
+
+poll = Poll("Which event next?", ("Tea Maze", "Battleships"), timedelta(days=2))
+message = await channel.send(poll=poll)
+```
+
+- **`Poll(question, answers, duration, multiple=False)`** holds a question of up to 300 characters, 2 to 10 answers of up to 55, none blank or repeated, and a duration of 1 hour to 32 days in whole hours, a day by default. One that breaks a limit raises `ValueError` saying which.
+- **`channel.send(poll=...)`** posts it, with any text, but no buttons or select menu. It first checks the bot may post a poll there and read it later, and raises `ActionError` naming what it lacks, such as Send Polls. The `Message` it returns has `poll_ends_at`. The outbox's `tx.send` takes no poll, since a poll is read by its message's ID.
+- **`channel.read_poll(message_id)`** returns the poll as a `SentPoll`: its `question`, `multiple`, `ends_at`, its `answers` as `PollAnswer`s with their `votes`, the `votes` of them all, and `final`. Discord counts no voters, so in a multiple-choice poll `votes` is more than the people who voted. Until `final`, a little after the poll ends, the counts are live and may be missing, which reads as no votes: trust them only once final. It returns None when the message is deleted or has no poll, and raises `MessageHidden` when the bot can no longer see the channel or read its history, a permission to fix, never a sign the poll is gone.
+- **`channel.end_poll(message_id)`** ends a poll the bot sent, and Discord then finalises it. Ending one that has ended does nothing, and one whose message is deleted raises `MessageGone`.
+- A poll can't be edited once posted, or ended early by anyone but its sender, and its votes are public. Who voted for what isn't read.
 
 ## The member directory
 
@@ -651,6 +670,8 @@ async def digest(ctx: Ctx) -> None:
 | `harness.join(member)`, `harness.leave(member)` | fire a member joining or leaving, and run the jobs they queue |
 | `harness.post(channel, member, text, files=)` | post a message as `member`, with any `File`s, fire it, and return it, to react to |
 | `harness.react(message, member, emoji)` | fire a reaction; `remove=True` takes it off |
+| `harness.vote(message, member, "answer")` | vote on a fake message's poll, by the answer's text; `remove=True` takes the vote off, and in a single-choice poll a second vote moves the first |
+| `harness.end_poll(message, final=True)` | end a fake poll now, finalised unless `final=False`, as for the minute before Discord finalises it; a poll also ends when `harness.advance` passes its end |
 | `harness.change_roles(member, added=[...], removed=[...])` | change a member's roles and fire it |
 | `harness.voice(member, joined=channel, left=channel)` | fire a voice move; with a `FakeVoiceChannel`, the member is in it from then on, and when only bots are left with the bot in `left`, the plugin holding it hears `on_voice_alone` |
 | `harness.enable()` | turn the plugin on as `/plugins enable` would, running `on_enable`; the harness starts with it on without running it |

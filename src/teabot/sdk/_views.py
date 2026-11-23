@@ -15,6 +15,7 @@ from typing import Any, cast
 
 import discord
 
+from teabot.sdk._clock import now
 from teabot.sdk._roles import MEMBER_GONE_CODES, MemberGone, problem, reason_text
 from teabot.sdk.actions import ActionError
 from teabot.sdk.components import BUTTONS_BESIDE_SELECT, BUTTONS_MAX, Button, Select
@@ -33,6 +34,7 @@ from teabot.sdk.guild import (
     VoiceChannel,
 )
 from teabot.sdk.permissions import Permission
+from teabot.sdk.polls import MessageGone, MessageHidden, Poll, PollAnswer, SentPoll
 
 FORBIDDEN = "I am not allowed to post in that channel."
 DEFAULT_REASON = "via teabot"
@@ -326,6 +328,11 @@ class MessageView:
     def jump_url(self) -> str:
         return str(self.raw.jump_url)
 
+    @property
+    def poll_ends_at(self) -> datetime | None:
+        poll = getattr(self.raw, "poll", None)
+        return poll.expires_at if poll is not None else None
+
     async def edit(
         self,
         content: str | None = None,
@@ -357,10 +364,29 @@ class MessageView:
             raise ActionError("Discord would not let me delete that message.") from None
 
 
-def allowed_mentions(ping: Iterable[int]) -> discord.AllowedMentions:
-    """Nobody is mentioned except the members named, whatever the text says."""
+def allowed_mentions(ping: Iterable[int], roles: Iterable[int] = ()) -> discord.AllowedMentions:
+    """Nobody is mentioned except the members and roles named, whatever the text says."""
     users = [discord.Object(id=user_id) for user_id in ping]
-    return discord.AllowedMentions(everyone=False, users=users, roles=False, replied_user=False)
+    pinged: list[discord.Object] | bool = [discord.Object(id=role_id) for role_id in roles] or False
+    return discord.AllowedMentions(everyone=False, users=users, roles=pinged, replied_user=False)
+
+
+POLL_NEEDS = ("view_channel", "read_message_history", "send_polls")
+POLL_HIDDEN = "I can no longer see that channel, or read its history, so I can't read its poll."
+
+
+def _discord_poll(poll: Poll) -> discord.Poll:
+    out = discord.Poll(poll.question, poll.duration, multiple=poll.multiple)
+    for text in poll.answers:
+        out.add_answer(text=text)
+    return out
+
+
+def _sent_poll(poll: Any) -> SentPoll:
+    answers = tuple(PollAnswer(int(a.id), str(a.text), int(a.vote_count or 0)) for a in poll.answers)
+    return SentPoll(
+        str(poll.question), bool(poll.multiple), poll.expires_at, answers, bool(poll.is_finalised())
+    )
 
 
 @dataclass(frozen=True)
@@ -389,18 +415,90 @@ class TextChannelView:
         files: Sequence[File] = (),
         buttons: Sequence[Button] = (),
         select: Select | None = None,
+        ping_roles: Iterable[int] = (),
+        poll: Poll | None = None,
     ) -> Message:
         extra: dict[str, Any] = {}
         view = _components(buttons, select)
         if view is not None:
             extra["view"] = view
+        if poll is not None:
+            if view is not None:
+                raise ActionError("A poll goes without buttons or a select menu.")
+            self._check_poll_permissions()
+            extra["poll"] = _discord_poll(poll)
+        roles = list(ping_roles)
+        if roles:
+            mentions = " ".join(f"<@&{role_id}>" for role_id in roles)
+            content = f"{mentions}\n{content}" if content else mentions
         try:
             sent = await self.raw.send(
-                content, embed=embed, allowed_mentions=allowed_mentions(ping), files=_files(files), **extra
+                content,
+                embed=embed,
+                allowed_mentions=allowed_mentions(ping, roles),
+                files=_files(files),
+                **extra,
             )
         except discord.Forbidden:
             raise ActionError(FORBIDDEN) from None
         return MessageView(sent)
+
+    def _raw_guild(self) -> Any:
+        return self.guild if self.guild is not None else getattr(self.raw, "guild", None)
+
+    def _check_poll_permissions(self) -> None:
+        """Refuse a poll the bot couldn't post here, or couldn't read afterwards, naming what it lacks."""
+        guild = self._raw_guild()
+        if guild is None:
+            return
+        held = self.raw.permissions_for(guild.me)
+        send = "send_messages_in_threads" if KINDS.get(_kind(self.raw)) == "thread" else "send_messages"
+        missing = [p for p in (send, *POLL_NEEDS) if not getattr(held, p)]
+        if missing:
+            names = " and ".join(_words(p) for p in missing)
+            raise ActionError(f"I need {names} in {self.mention} to post a poll there.")
+
+    def can_mention(self, role: Role, /, *, by: Member | None = None) -> str | None:
+        guild = self._raw_guild()
+        found = guild.get_role(role.id) if guild is not None else None
+        if guild is None or found is None:
+            return "That role is not in this server."
+        if int(found.id) == int(guild.id):
+            return "A role ping can't reach @everyone."
+        if found.mentionable:
+            return None
+        for who, need in ((_raw_member(guild, by), "you need"), (guild.me, "I need")):
+            if who is not None and not self.raw.permissions_for(who).mention_everyone:
+                return f"{found.name} can't be mentioned, and {need} Mention Everyone in {self.mention} to ping it."
+        return None
+
+    async def read_poll(self, message_id: int, /) -> SentPoll | None:
+        try:
+            found = await self.raw.fetch_message(message_id)
+        except discord.NotFound:
+            return None
+        except discord.Forbidden:
+            raise MessageHidden(POLL_HIDDEN) from None
+        poll = getattr(found, "poll", None)
+        return _sent_poll(poll) if poll is not None else None
+
+    async def end_poll(self, message_id: int, /) -> None:
+        try:
+            await self.raw.get_partial_message(message_id).end_poll()
+        except discord.NotFound:
+            raise MessageGone("That poll's message has been deleted.") from None
+        except discord.Forbidden:
+            raise ActionError(
+                "Discord would not let me end that poll: I can end only polls I sent."
+            ) from None
+        except discord.HTTPException:
+            # Discord refuses to end a poll that has ended; that one is ended, as asked.
+            found = await self.read_poll(message_id)
+            ended = found is not None and (
+                found.final or (found.ends_at is not None and found.ends_at <= now())
+            )
+            if not ended:
+                raise ActionError("Discord would not end that poll.") from None
 
     async def get_message(self, message_id: int, /) -> Message | None:
         try:

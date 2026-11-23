@@ -14,9 +14,11 @@ from typing import Any, cast
 
 import discord
 
-from teabot.sdk._views import TextChannelView
+from teabot.sdk._clock import CLOCK
+from teabot.sdk._views import MessageView, TextChannelView
 from teabot.sdk.guild import ReceivedMessage
 from teabot.sdk.permissions import Permission
+from teabot.sdk.polls import SentPoll
 
 _ids = itertools.count(900_000_000_000_000_000)
 BOT_POSITION = 100
@@ -45,6 +47,74 @@ def not_found(text: str, *, code: int = 0) -> discord.NotFound:
     error = discord.NotFound(cast(Any, _NotFoundResponse()), text)
     error.code = code
     return error
+
+
+class _BadRequestResponse:
+    status = 400
+    reason = "Bad Request"
+
+
+def bad_request(text: str) -> discord.HTTPException:
+    return discord.HTTPException(cast(Any, _BadRequestResponse()), text)
+
+
+@dataclass
+class FakePollAnswer:
+    """One answer of a fake poll, and who voted for it."""
+
+    id: int
+    text: str
+    voters: list[int] = field(default_factory=list[int])
+
+    @property
+    def vote_count(self) -> int:
+        return len(self.voters)
+
+
+@dataclass
+class FakePoll:
+    """A poll on a fake message, read as discord.py's `Poll` is. It ends at `expires_at`, by the test clock, and is
+    finalised once ended, unless `harness.end_poll(..., final=False)` says otherwise."""
+
+    question: str
+    answers: list[FakePollAnswer]
+    multiple: bool
+    expires_at: datetime
+    finalised: bool | None = None
+
+    @property
+    def ended(self) -> bool:
+        return self.expires_at <= CLOCK.now()
+
+    def is_finalised(self) -> bool:
+        return self.finalised if self.finalised is not None else self.ended
+
+    def vote(self, member_id: int, text: str, *, remove: bool = False) -> None:
+        """Add `member_id`'s vote for the answer `text`, or take it off. In a single-choice poll a second vote moves
+        the first, as in Discord."""
+        answer = next((a for a in self.answers if a.text == text), None)
+        if answer is None:
+            raise ValueError(f"The poll has no answer {text!r}.")
+        if self.ended:
+            raise ValueError("The poll has ended.")
+        if not remove and not self.multiple:
+            for other in self.answers:
+                other.voters = [v for v in other.voters if v != member_id]
+        answer.voters = [v for v in answer.voters if v != member_id]
+        if not remove:
+            answer.voters.append(member_id)
+
+    def end(self, *, final: bool = True) -> None:
+        if not self.ended:
+            self.expires_at = CLOCK.now()
+        self.finalised = final
+
+
+def fake_poll(poll: Any) -> FakePoll:
+    """discord.py's `Poll`, as the views send it, or the SDK's, when a test sends to a fake directly."""
+    texts = [str(a.text) for a in poll.answers] if isinstance(poll, discord.Poll) else list(poll.answers)
+    answers = [FakePollAnswer(n, text) for n, text in enumerate(texts, start=1)]
+    return FakePoll(str(poll.question), answers, bool(poll.multiple), CLOCK.now() + poll.duration)
 
 
 @dataclass
@@ -160,6 +230,7 @@ class FakeMessage:
     deleted: bool = False
     edits: int = 0
     reactions: list[FakeReaction] = field(default_factory=list[FakeReaction])
+    poll: FakePoll | None = None
 
     def react(self, member: "FakeMember", emoji: str, *, remove: bool = False) -> None:
         """Add `member`'s reaction, or take it off, as Discord records it; `harness.react` also fires the event."""
@@ -179,6 +250,18 @@ class FakeMessage:
     @property
     def author(self) -> _Author:
         return _Author(self.author_id)
+
+    @property
+    def poll_ends_at(self) -> datetime | None:
+        return self.poll.expires_at if self.poll is not None else None
+
+    async def end_poll(self) -> None:
+        """End the message's poll, as discord.py's `end_poll` does; Discord refuses one already ended."""
+        if self.deleted:
+            raise not_found("Unknown Message")
+        if self.poll is None or self.poll.ended:
+            raise bad_request("Poll expired")
+        self.poll.end()
 
     async def edit(
         self,
@@ -245,13 +328,36 @@ class _GuildChannel:
 
 
 @dataclass
+class _PartialMessage:
+    """A message by ID alone, as discord.py's `get_partial_message` gives, for one no fake channel holds."""
+
+    id: int
+
+    async def end_poll(self) -> None:
+        raise not_found("Unknown Message")
+
+
+@dataclass
 class FakeChannel(_GuildChannel):
     """A text channel that records what it is sent. A `forbidden` one refuses, as Discord does when the
-    bot lacks permission there."""
+    bot lacks permission there. A member's permissions here are their server's, with View Channel unless the
+    channel is `hidden_from` them, less any named in `refused`, such as `send_polls`."""
 
     sent: list[FakeMessage] = field(default_factory=list[FakeMessage])
     forbidden: bool = False
     type: str = "text"
+    refused: set[str] = field(default_factory=set[str])
+
+    def permissions_for(self, member: "FakeMember", /) -> discord.Permissions:
+        held = member.guild_permissions
+        allowed = discord.Permissions.all() if held.administrator else discord.Permissions(held.value)
+        allowed.update(view_channel=member.id not in self.hidden_from, administrator=False)
+        allowed.update(**dict.fromkeys(self.refused, False))
+        return allowed
+
+    def _bot_blind(self) -> bool:
+        me = self.guild.me if self.guild is not None else None
+        return me is not None and (me.id in self.hidden_from or "read_message_history" in self.refused)
 
     async def send(
         self,
@@ -265,9 +371,16 @@ class FakeChannel(_GuildChannel):
         buttons: Sequence[Any] = (),
         select: Any = None,
         nonce: str | int | None = None,
+        poll: Any = None,
+        ping_roles: Iterable[int] = (),
     ) -> FakeMessage:
         """Record the message. `allowed_mentions` and `view` are discord.py's forms, which the core uses; `ping`
-        and `buttons` are the SDK's, so a fake channel can stand where an action takes a `TextChannel`."""
+        and `buttons` are the SDK's, so a fake channel can stand where an action takes a `TextChannel`. A `poll`
+        is either's, and `ping_roles` goes through the SDK's own sending."""
+        if ping_roles:
+            view = TextChannelView(self, self.guild)
+            sent = await view.send(content, embed=embed, ping=ping, ping_roles=ping_roles, poll=poll)
+            return cast(FakeMessage, cast(MessageView, sent).raw)
         if ping and allowed_mentions is None:
             allowed_mentions = discord.AllowedMentions(users=[discord.Object(id=i) for i in ping])
         if self.forbidden:
@@ -283,15 +396,22 @@ class FakeChannel(_GuildChannel):
             _buttons(view, buttons),
             author,
             select=_select(view, select),
+            poll=fake_poll(poll) if poll is not None else None,
         )
         self.sent.append(message)
         return message
 
     async def fetch_message(self, message_id: int, /) -> FakeMessage:
+        if self._bot_blind():
+            raise forbidden("Missing Access")
         found = next((m for m in self.sent if m.id == message_id and not m.deleted), None)
         if found is None:
             raise not_found("Unknown Message")
         return found
+
+    def get_partial_message(self, message_id: int, /) -> "FakeMessage | _PartialMessage":
+        found = next((m for m in self.sent if m.id == message_id and not m.deleted), None)
+        return found if found is not None else _PartialMessage(message_id)
 
     async def get_message(self, message_id: int, /) -> FakeMessage | None:
         """The SDK's name, for a test that uses a fake channel directly."""
@@ -304,6 +424,18 @@ class FakeChannel(_GuildChannel):
     async def reactors(self, message_id: int, emoji: str, /) -> tuple[int, ...]:
         """The SDK's list of who reacted, for a test that uses a fake channel directly."""
         return await TextChannelView(self).reactors(message_id, emoji)
+
+    def can_mention(self, role: Any, /, *, by: Any = None) -> str | None:
+        """The SDK's role-ping check, for a test that uses a fake channel directly."""
+        return TextChannelView(self, self.guild).can_mention(role, by=by)
+
+    async def read_poll(self, message_id: int, /) -> "SentPoll | None":
+        """The SDK's reading of a poll, for a test that uses a fake channel directly."""
+        return await TextChannelView(self, self.guild).read_poll(message_id)
+
+    async def end_poll(self, message_id: int, /) -> None:
+        """The SDK's ending of a poll, for a test that uses a fake channel directly."""
+        await TextChannelView(self, self.guild).end_poll(message_id)
 
 
 @dataclass

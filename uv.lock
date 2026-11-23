@@ -2261,7 +2261,7 @@ wheels = [
 
 [[package]]
 name = "teabot"
-version = "1.16.0.dev0"
+version = "1.16.0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncpg" },

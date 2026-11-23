@@ -1,6 +1,6 @@
 [project]
 name = "teabot"
-version = "1.16.0.dev0"
+version = "1.16.0"
 description = "An open-source, plugin-based Discord bot."
 keywords = ["discord", "bot", "plugins", "mcp", "self-hosted"]
 classifiers = [

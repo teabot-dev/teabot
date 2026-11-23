@@ -14,7 +14,7 @@ from pydantic import Field
 from teabot.sdk import ActionError, Button, Surface
 
 from . import Ctx, handled, plugin, queue_of
-from .claims import make_claim, mine
+from .claims import closed_reason, make_claim, mine
 
 CLOSEST = 5
 
@@ -84,27 +84,38 @@ async def post(ctx: Ctx, queue: int) -> str:
 async def claim_from_board(
     ctx: Ctx, queue: int, item: Annotated[str, Field(min_length=1, max_length=100)]
 ) -> str:
-    """Claim from a queue's board, by name. Only the board's Claim button runs this.
+    """Claim your account.
+
+    The board's Claim button runs this, with the name the member types. Discord shows at most 45 characters of a
+    form's title and labels, so both stay short.
 
     Args:
         queue: The queue's number
-        item: What you are claiming, such as your account's name
+        item: Your account's name, as in game
     """
     found = await queue_of(ctx, queue)
-    rows = await ctx.db.fetch(
-        "SELECT id, title FROM tickets WHERE guild_id = $1 AND queue_id = $2 AND state = 'open'",
+    every = await ctx.db.fetch(
+        "SELECT id, title, state, resolution FROM tickets WHERE guild_id = $1 AND queue_id = $2",
         ctx.guild.id,
         queue,
     )
+    rows = [r for r in every if r["state"] == "open"]
     wanted = _normal(item)
     exact = [r for r in rows if _normal(r["title"]) == wanted]
     if len(exact) == 1:
         return await make_claim(ctx, int(exact[0]["id"]), "")
+    taken = [r for r in every if r["state"] != "open" and _normal(r["title"]) == wanted]
+    if taken and not exact:
+        r = taken[0]
+        raise ActionError(await closed_reason(ctx, ctx.db, int(r["id"]), r["title"], r["resolution"]))
     titles = {_normal(r["title"]): r["title"] for r in rows}
     close = [titles[k] for k in difflib.get_close_matches(wanted, list(titles), n=CLOSEST, cutoff=0.6)]
     holding = [r["title"] for r in rows if wanted in _normal(r["title"])][:CLOSEST]
     named = list(dict.fromkeys([*holding, *close]))[:CLOSEST]
     if not named:
-        raise ActionError(f"Nothing open in {found.name} is called {item}.")
+        raise ActionError(
+            f"No account called {item} is in {found.name}. Check the spelling. If the account joined the clan "
+            "recently, it can be claimed after the next sync."
+        )
     listed = ", ".join(f"**{n}**" for n in named)
     return f"Did you mean {listed}? Claim it by its exact name, or with /tickets claim, which searches as you type."

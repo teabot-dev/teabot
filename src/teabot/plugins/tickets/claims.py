@@ -314,6 +314,23 @@ async def _grant_one(ctx: Ctx, tx: Any, row: Any, to: int, reason: str) -> None:
     await reject_waiting(ctx, tx, ticket, own, "another claim was accepted")
 
 
+async def closed_reason(ctx: Ctx, db: Any, ticket: int, title: str, resolution: str | None) -> str:
+    """Why a closed ticket can't be claimed, in words a member understands. It never names who holds it."""
+    if resolution == "accepted":
+        holder = await db.fetchval(
+            "SELECT member FROM claims WHERE guild_id = $1 AND ticket_id = $2 AND state = 'accepted'",
+            ctx.guild.id,
+            ticket,
+        )
+        if holder is not None and int(holder) == ctx.actor.user_id:
+            return f"{title} is already linked to you, so there's nothing to claim. See yours with /tickets mine."
+        return f"{title} is already linked to another member. If it's yours, ask a handler to look into it."
+    return (
+        f"{title} can't be claimed right now, as it isn't in the clan. If it joined recently, try again after the "
+        "next sync."
+    )
+
+
 async def make_claim(ctx: Ctx, ticket: int, note: str) -> str:
     """Claim an open ticket for the member asking, with the queue's limits, and post it for handlers."""
     queue_id = await ctx.db.fetchval(
@@ -326,7 +343,7 @@ async def make_claim(ctx: Ctx, ticket: int, note: str) -> str:
         queue = await queue_of(ctx, int(queue_id), within=tx, lock=True)
         await tx.execute(LOCK_TICKETS, ctx.guild.id, [ticket])
         row = await tx.fetchrow(
-            "SELECT title, body, key, state FROM tickets WHERE guild_id = $1 AND id = $2",
+            "SELECT title, body, key, state, resolution FROM tickets WHERE guild_id = $1 AND id = $2",
             ctx.guild.id,
             ticket,
         )
@@ -334,7 +351,7 @@ async def make_claim(ctx: Ctx, ticket: int, note: str) -> str:
         if not may_claim(member, queue):
             raise ActionError(f"Claiming in {queue.name} needs one of its roles.")
         if row["state"] != "open":
-            raise ActionError(f"{row['title']} is no longer open to claims.")
+            raise ActionError(await closed_reason(ctx, tx, ticket, row["title"], row["resolution"]))
         waiting = await tx.fetch(
             "SELECT member FROM claims WHERE guild_id = $1 AND ticket_id = $2 AND state = 'waiting'",
             ctx.guild.id,

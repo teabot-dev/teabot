@@ -6,6 +6,10 @@ Every release of `teabot` and the instance template, newest first. Up to 1.0.2, 
 
 ## Unreleased
 
+### Using teabot
+
+- A ticket's Claim form fits Discord's 45 characters, and a claim on an account that is already linked, or has left the clan, says why it can't be claimed.
+
 ## 1.14.0 - 2026-11-20
 
 ### Using teabot

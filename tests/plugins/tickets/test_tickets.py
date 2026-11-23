@@ -10,6 +10,7 @@ from teabot.plugins.tickets import plugin, queue_add
 from teabot.plugins.tickets.board import claim_from_board, post
 from teabot.plugins.tickets.claims import accept, claim, grant, mine, reject, revoke, waiting, withdraw
 from teabot.plugins.tickets.items import cancel, create, list_, reopen
+from teabot.sdk.inputs import input_fields
 from teabot.testing import FakeChannel, FakeMember, FakeRole, HarnessFactory, PluginHarness
 
 NONE = discord.Permissions.none()
@@ -96,7 +97,7 @@ async def test_accepting_one_claim_closes_the_ticket_and_rejects_the_rest(
     ]
     page = await d.harness.as_member(d.handler).call(list_, queue=d.queue)
     assert (page.tickets[0].state, page.tickets[0].resolution) == ("closed", "accepted")
-    with pytest.raises(Exception, match="no longer open"):
+    with pytest.raises(Exception, match="already linked to another member"):
         await d.harness.as_member(ann).call(claim, ticket=ticket)
 
 
@@ -213,3 +214,26 @@ async def test_grant_accepts_the_members_own_waiting_claim_and_rejects_the_rest(
     )
     with pytest.raises(Exception, match="handlers may grant"):
         await d.harness.as_member(ann).call(grant, tickets=[ticket], members=[ann.id])
+
+
+async def test_a_claim_on_a_linked_or_departed_account_says_why(teabot_harness: HarnessFactory) -> None:
+    d = await desk(teabot_harness)
+    made = await d.harness.as_member(d.handler).call(create, queue=d.queue, titles=["Green Clog", "Gone Guy"])
+    green, gone = made.tickets[0].id, made.tickets[1].id
+    sam, ann = d.member("sam"), d.member("ann")
+    await d.harness.as_member(d.handler).call(grant, tickets=[green], members=[sam.id])
+    await d.harness.as_member(d.handler).call(cancel, ticket=gone)
+    with pytest.raises(Exception, match="already linked to you"):
+        await d.harness.as_member(sam).call(claim_from_board, queue=d.queue, item="green clog")
+    with pytest.raises(Exception, match="already linked to another member"):
+        await d.harness.as_member(ann).call(claim_from_board, queue=d.queue, item="Green Clog")
+    with pytest.raises(Exception, match="isn't in the clan"):
+        await d.harness.as_member(ann).call(claim, ticket=gone)
+    with pytest.raises(Exception, match="after the next sync"):
+        await d.harness.as_member(ann).call(claim_from_board, queue=d.queue, item="Nobody Here")
+
+
+def test_the_claim_form_fits_discords_45_characters() -> None:
+    spec = claim_from_board.spec()
+    field = next(f for f in input_fields(spec.input) if f.name == "item")
+    assert len(spec.summary) <= 45 and len(field.description) <= 45

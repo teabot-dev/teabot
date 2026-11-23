@@ -61,6 +61,7 @@ teabot = "teabot.cli:app"
 # The first-party plugins ship inside teabot, and load through the same entry points as any other (D44).
 [project.entry-points."teabot.plugins"]
 announcements = "teabot.plugins.announcements:plugin"
+polls = "teabot.plugins.polls:plugin"
 roles = "teabot.plugins.roles:plugin"
 tickets = "teabot.plugins.tickets:plugin"
 

@@ -6,6 +6,10 @@ Every release of `teabot` and the instance template, newest first. Up to 1.0.2, 
 
 ## Unreleased
 
+### Using teabot
+
+- The polls plugin: Discord's own polls, which members vote in with a click. Start one with up to ten answers and an optional role ping, end it early after a plan with the votes so far, list the running ones, and read any poll's results. teabot keeps each poll's final counts once it ends, and announces them as `polls.ended`. See [Polls](https://teabot-dev.github.io/teabot/use/plugins/polls/).
+
 ### Writing plugins
 
 - Discord's own polls: `channel.send(poll=Poll(...))` posts one, `channel.read_poll` reads its counts as a `SentPoll`, and `channel.end_poll` ends it early. `MessageHidden` tells a channel the bot can no longer see apart from a deleted message. `harness.vote` and `harness.end_poll` test them. See [Polls](https://teabot-dev.github.io/teabot/plugins/reference/#polls).

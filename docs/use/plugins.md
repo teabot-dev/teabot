@@ -61,7 +61,7 @@ Change one. The `plugin` and `setting` options suggest names as you type:
 - For a channel, role or member, type `#` or `@` and pick it from Discord's list. Its ID works too: to copy one, turn on **Developer Mode** in Discord's **Advanced** settings, then right-click the channel, role or member and choose **Copy ID**.
 - teabot checks the value, and says what is wrong if it does not fit.
 
-Each plugin lists its settings: [Announcements](plugins/announcements.md), [Roles](plugins/roles.md) and [Tickets](plugins/tickets.md) here, and a plugin from the hub in the README its hub listing links to.
+Each plugin lists its settings: [Announcements](plugins/announcements.md), [Polls](plugins/polls.md), [Roles](plugins/roles.md) and [Tickets](plugins/tickets.md) here, and a plugin from the hub in the README its hub listing links to.
 
 Admins can do the same in a browser, on [your teabot's site](site.md).
 

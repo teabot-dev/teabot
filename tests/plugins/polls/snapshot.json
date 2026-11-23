@@ -1,0 +1,421 @@
+{
+  "commands": {
+    "default_member_permissions": "8192",
+    "description": "polls commands",
+    "name": "polls",
+    "options": [
+      {
+        "description": "End a running poll early, which stops the voting. It can't be undone.",
+        "name": "end",
+        "options": [
+          {
+            "autocomplete": true,
+            "description": "The poll, from /polls list",
+            "name": "poll",
+            "required": true,
+            "type": 4
+          }
+        ],
+        "type": 1
+      },
+      {
+        "description": "The server's running polls.",
+        "name": "list",
+        "options": [],
+        "type": 1
+      },
+      {
+        "description": "A poll's results: the counts so far while it runs, and the kept final counts once it has ended.",
+        "name": "results",
+        "options": [
+          {
+            "autocomplete": true,
+            "description": "The poll, from /polls list",
+            "name": "poll",
+            "required": true,
+            "type": 4
+          }
+        ],
+        "type": 1
+      },
+      {
+        "description": "Start a poll, which members vote in with a click.",
+        "name": "start",
+        "options": [
+          {
+            "description": "Where to post the poll",
+            "name": "channel",
+            "required": true,
+            "type": 7
+          },
+          {
+            "description": "What the poll asks",
+            "max_length": 300,
+            "name": "question",
+            "required": true,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_1",
+            "required": true,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_2",
+            "required": true,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_3",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_4",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_5",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_6",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_7",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_8",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_9",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "An answer members can choose",
+            "name": "answers_10",
+            "required": false,
+            "type": 3
+          },
+          {
+            "choices": [
+              {
+                "name": "1 hour",
+                "value": "1 hour"
+              },
+              {
+                "name": "4 hours",
+                "value": "4 hours"
+              },
+              {
+                "name": "8 hours",
+                "value": "8 hours"
+              },
+              {
+                "name": "1 day",
+                "value": "1 day"
+              },
+              {
+                "name": "3 days",
+                "value": "3 days"
+              },
+              {
+                "name": "1 week",
+                "value": "1 week"
+              },
+              {
+                "name": "2 weeks",
+                "value": "2 weeks"
+              }
+            ],
+            "description": "How long it runs",
+            "name": "duration",
+            "required": false,
+            "type": 3
+          },
+          {
+            "description": "Whether members may choose more than one answer",
+            "name": "multiple",
+            "required": false,
+            "type": 5
+          },
+          {
+            "description": "A role to ping with the poll",
+            "name": "ping",
+            "required": false,
+            "type": 8
+          }
+        ],
+        "type": 1
+      }
+    ],
+    "type": 1
+  },
+  "emits": {
+    "ended": {
+      "description": "A poll ended and its results were read; outcome says whether Discord counted it or its message was gone",
+      "payload": {
+        "$defs": {
+          "AnswerVotes": {
+            "properties": {
+              "text": {
+                "title": "Text",
+                "type": "string"
+              },
+              "votes": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Votes"
+              }
+            },
+            "required": [
+              "text",
+              "votes"
+            ],
+            "title": "AnswerVotes",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/$defs/AnswerVotes"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "integer"
+          },
+          "final": {
+            "title": "Final",
+            "type": "boolean"
+          },
+          "message_url": {
+            "title": "Message Url",
+            "type": "string"
+          },
+          "multiple": {
+            "title": "Multiple",
+            "type": "boolean"
+          },
+          "outcome": {
+            "enum": [
+              "counted",
+              "uncounted",
+              "gone"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "poll": {
+            "title": "Poll",
+            "type": "integer"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "started_by": {
+            "anyOf": [
+              {
+                "pattern": "^[1-9][0-9]{0,19}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started By"
+          },
+          "votes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Votes"
+          }
+        },
+        "required": [
+          "poll",
+          "channel",
+          "message_url",
+          "started_by",
+          "question",
+          "answers",
+          "votes",
+          "multiple",
+          "final",
+          "outcome"
+        ],
+        "title": "Ended",
+        "type": "object"
+      }
+    }
+  },
+  "jobs": {
+    "read_results": {
+      "properties": {
+        "poll": {
+          "title": "Poll",
+          "type": "integer"
+        },
+        "tries": {
+          "title": "Tries",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "poll",
+        "tries"
+      ],
+      "title": "PollsReadResultsInput",
+      "type": "object"
+    }
+  },
+  "tools": {
+    "polls_end": {
+      "properties": {
+        "confirm": {
+          "description": "The confirm value of a plan this tool returned. Leave it out to get a plan.",
+          "type": "string"
+        },
+        "poll": {
+          "description": "The poll, from /polls list",
+          "title": "Poll",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "poll"
+      ],
+      "title": "PollsEndInput",
+      "type": "object"
+    },
+    "polls_list": {
+      "properties": {},
+      "title": "PollsListInput",
+      "type": "object"
+    },
+    "polls_results": {
+      "properties": {
+        "poll": {
+          "description": "The poll, from /polls list",
+          "title": "Poll",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "poll"
+      ],
+      "title": "PollsResultsInput",
+      "type": "object"
+    },
+    "polls_start": {
+      "$defs": {
+        "Answers": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 2,
+          "type": "array"
+        },
+        "Duration": {
+          "enum": [
+            "1 hour",
+            "4 hours",
+            "8 hours",
+            "1 day",
+            "3 days",
+            "1 week",
+            "2 weeks"
+          ],
+          "type": "string"
+        },
+        "Question": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "properties": {
+        "answers": {
+          "$ref": "#/$defs/Answers",
+          "description": "An answer members can choose"
+        },
+        "channel": {
+          "description": "Where to post the poll",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "title": "Channel",
+          "type": "string"
+        },
+        "duration": {
+          "$ref": "#/$defs/Duration",
+          "default": "1 day",
+          "description": "How long it runs"
+        },
+        "multiple": {
+          "default": false,
+          "description": "Whether members may choose more than one answer",
+          "title": "Multiple",
+          "type": "boolean"
+        },
+        "ping": {
+          "anyOf": [
+            {
+              "pattern": "^[1-9][0-9]{0,19}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A role to ping with the poll",
+          "title": "Ping"
+        },
+        "question": {
+          "$ref": "#/$defs/Question",
+          "description": "What the poll asks"
+        }
+      },
+      "required": [
+        "channel",
+        "question",
+        "answers"
+      ],
+      "title": "PollsStartInput",
+      "type": "object"
+    }
+  }
+}

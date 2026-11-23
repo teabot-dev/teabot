@@ -2,6 +2,8 @@
 
 This grows the `ballots` plugin from [Your first plugin](index.md) into a real one. At the end, members can start ballots, vote and change their votes, a job posts the results when time is up, and moderators can delete a ballot after confirming a plan. Every piece is tested.
 
+Ballots are voted in with a slash command, which teaches actions, jobs and tables. For polls members vote in with a click, teabot ships the [polls plugin](../use/plugins/polls.md), built on Discord's own polls.
+
 The finished plugin is [`examples/ballots`](https://github.com/teabot-dev/teabot/tree/main/examples/ballots) in teabot's repository. Its tests run with teabot's own, so the code on this page works as shown.
 
 ## 1. The plugin and its settings

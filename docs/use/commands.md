@@ -1,6 +1,6 @@
 # Built-in commands
 
-These commands come with teabot, and work in every server. Plugins add more: see [Announcements](plugins/announcements.md), [Roles](plugins/roles.md) and [Tickets](plugins/tickets.md), which come with teabot, and the [plugin hub](../hub/index.md) for others, such as giveaways.
+These commands come with teabot, and work in every server. Plugins add more: see [Announcements](plugins/announcements.md), [Polls](plugins/polls.md), [Roles](plugins/roles.md) and [Tickets](plugins/tickets.md), which come with teabot, and the [plugin hub](../hub/index.md) for others, such as giveaways.
 
 ## `/plugins`
 

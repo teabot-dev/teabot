@@ -27,6 +27,7 @@ nav = [
     { "Built-in commands" = "use/commands.md" },
     { "Plugins" = [
       { "Announcements" = "use/plugins/announcements.md" },
+      { "Polls" = "use/plugins/polls.md" },
       { "Roles" = "use/plugins/roles.md" },
       { "Tickets" = "use/plugins/tickets.md" },
     ] },

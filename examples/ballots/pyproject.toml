@@ -1,19 +1,19 @@
 [project]
-name = "teabot-polls"
+name = "teabot-ballots"
 version = "0.1.0"
-description = "The tutorial's plugin: polls with a job that posts the results"
+description = "The tutorial's plugin: ballots with a job that posts the results"
 requires-python = ">=3.12"
 dependencies = ["teabot"]
 
 [project.entry-points."teabot.plugins"]
-polls = "teabot_polls:plugin"
+ballots = "teabot_ballots:plugin"
 
 [build-system]
 requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/teabot_polls"]
+packages = ["src/teabot_ballots"]
 
 [tool.uv.sources]
 teabot = { workspace = true }

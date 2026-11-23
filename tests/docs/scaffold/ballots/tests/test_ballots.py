@@ -1,9 +1,9 @@
-"""teabot-polls, through the real loader, migrations and call path (`teabot.testing`)."""
+"""teabot-ballots, through the real loader, migrations and call path (`teabot.testing`)."""
 
 import discord
 from teabot.testing import HarnessFactory
 
-from teabot_polls import Greeted, hello, plugin
+from teabot_ballots import Greeted, hello, plugin
 
 
 async def test_hello_counts_a_members_greetings(teabot_harness: HarnessFactory) -> None:

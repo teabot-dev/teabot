@@ -1,4 +1,4 @@
-CREATE TABLE polls (
+CREATE TABLE ballots (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     guild_id bigint NOT NULL,
     channel_id bigint NOT NULL,
@@ -11,9 +11,9 @@ CREATE TABLE polls (
 
 CREATE TABLE votes (
     guild_id bigint NOT NULL,
-    poll_id bigint NOT NULL,
+    ballot_id bigint NOT NULL,
     member_id teabot.member_id NOT NULL,
     choice int NOT NULL,
-    PRIMARY KEY (guild_id, poll_id, member_id),
-    FOREIGN KEY (guild_id, poll_id) REFERENCES polls (guild_id, id) ON DELETE CASCADE
+    PRIMARY KEY (guild_id, ballot_id, member_id),
+    FOREIGN KEY (guild_id, ballot_id) REFERENCES ballots (guild_id, id) ON DELETE CASCADE
 );

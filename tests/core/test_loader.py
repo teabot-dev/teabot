@@ -105,6 +105,7 @@ async def test_a_duplicate_id_loads_neither_and_names_both() -> None:
     status = report.statuses["alpha"]
     assert status.reason == "duplicate_id" and "alpha" not in report.loaded
     assert (status.error or "").count("FakePlugin") == 2
+    assert "teabot plugins purge alpha" in (status.error or "")
     assert report.statuses["beta"].loaded
 
 

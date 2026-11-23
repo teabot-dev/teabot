@@ -10,6 +10,12 @@ Every release of `teabot` and the instance template, newest first. Up to 1.0.2, 
 
 - Discord's own polls: `channel.send(poll=Poll(...))` posts one, `channel.read_poll` reads its counts as a `SentPoll`, and `channel.end_poll` ends it early. `MessageHidden` tells a channel the bot can no longer see apart from a deleted message. `harness.vote` and `harness.end_poll` test them. See [Polls](https://teabot-dev.github.io/teabot/plugins/reference/#polls).
 - `channel.send(..., ping_roles=[...])` pings roles, and `channel.can_mention(role, by=member)` says whether such a ping would reach them.
+- The tutorial's plugin is called `ballots`, since teabot ships a `polls` plugin, so the tutorial starts with `teabot new-plugin ballots`.
+- When two plugins declare one ID, the start-up log says how to fix it, as well as which packages declare it.
+
+### For operators
+
+- teabot ships a plugin called `polls`. A plugin of your own with that ID, such as one built from the tutorial before it was renamed, stops both from loading. Before upgrading, give yours another ID, or uninstall it. Data your plugin kept under `polls` stays with the ID, so run `teabot plugins purge polls` before enabling teabot's.
 
 ## 1.15.0 - 2026-11-23
 

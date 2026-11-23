@@ -77,7 +77,7 @@ dev = [
     "pytest-postgresql>=10.0",
     "ruff>=0.17",
     "teabot-devtools",
-    "teabot-polls",
+    "teabot-ballots",
     "teabot[voice]",
 ]
 docs = ["zensical==0.1.1"]
@@ -95,7 +95,7 @@ members = ["plugins/*", "examples/*"]
 
 [tool.uv.sources]
 teabot-devtools = { workspace = true }
-teabot-polls = { workspace = true }
+teabot-ballots = { workspace = true }
 teabot-devtools-twin = { workspace = true }
 
 [tool.ruff]
@@ -111,7 +111,7 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "C90", "RUF", "ASYNC", "PL"]
 ignore = ["PLR2004"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["teabot", "teabot_devtools", "teabot_devtools_twin", "teabot_polls"]
+known-first-party = ["teabot", "teabot_devtools", "teabot_devtools_twin", "teabot_ballots"]
 
 [tool.ruff.lint.pycodestyle]
 max-line-length = 120
@@ -161,7 +161,7 @@ asyncio_default_test_loop_scope = "session"
 filterwarnings = ["ignore:'count' is passed as positional argument:DeprecationWarning:discord.utils"]
 
 [tool.importlinter]
-root_packages = ["teabot", "teabot_devtools", "teabot_polls"]
+root_packages = ["teabot", "teabot_devtools", "teabot_ballots"]
 
 [[tool.importlinter.contracts]]
 name = "The plugin SDK does not depend on the core's internals (D45)"
@@ -193,7 +193,7 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "First-party plugins import only the SDK (D45)"
 type = "forbidden"
-source_modules = ["teabot.plugins", "teabot_devtools", "teabot_polls"]
+source_modules = ["teabot.plugins", "teabot_devtools", "teabot_ballots"]
 forbidden_modules = [
     "teabot.adapters",
     "teabot.app",

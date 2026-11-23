@@ -44,7 +44,7 @@ nav = [
   { "Plugin hub" = "hub/index.md" },
   { "Plugin developers" = [
     { "Your first plugin" = "plugins/index.md" },
-    { "Tutorial: a polls plugin" = "plugins/tutorial.md" },
+    { "Tutorial: a ballots plugin" = "plugins/tutorial.md" },
     { "Reference" = "plugins/reference.md" },
     { "Publishing a plugin" = "plugins/publishing.md" },
   ] },

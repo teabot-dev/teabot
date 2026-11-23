@@ -10,9 +10,9 @@ resolution-markers = [
 [manifest]
 members = [
     "teabot",
+    "teabot-ballots",
     "teabot-devtools",
     "teabot-devtools-twin",
-    "teabot-polls",
 ]
 
 [[package]]
@@ -2304,8 +2304,8 @@ dev = [
     { name = "pytest-postgresql" },
     { name = "ruff" },
     { name = "teabot", extra = ["voice"] },
+    { name = "teabot-ballots" },
     { name = "teabot-devtools" },
-    { name = "teabot-polls" },
 ]
 docs = [
     { name = "zensical" },
@@ -2351,11 +2351,22 @@ dev = [
     { name = "pytest-postgresql", specifier = ">=10.0" },
     { name = "ruff", specifier = ">=0.17" },
     { name = "teabot", extras = ["voice"] },
+    { name = "teabot-ballots", editable = "examples/ballots" },
     { name = "teabot-devtools", editable = "plugins/devtools" },
-    { name = "teabot-polls", editable = "examples/polls" },
 ]
 docs = [{ name = "zensical", specifier = "==0.1.1" }]
 duplicate-check = [{ name = "teabot-devtools-twin", editable = "plugins/devtools_twin" }]
+
+[[package]]
+name = "teabot-ballots"
+version = "0.1.0"
+source = { editable = "examples/ballots" }
+dependencies = [
+    { name = "teabot" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "teabot", editable = "." }]
 
 [[package]]
 name = "teabot-devtools"
@@ -2372,17 +2383,6 @@ requires-dist = [{ name = "teabot", editable = "." }]
 name = "teabot-devtools-twin"
 version = "0.0.1"
 source = { editable = "plugins/devtools_twin" }
-dependencies = [
-    { name = "teabot" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "teabot", editable = "." }]
-
-[[package]]
-name = "teabot-polls"
-version = "0.1.0"
-source = { editable = "examples/polls" }
 dependencies = [
     { name = "teabot" },
 ]

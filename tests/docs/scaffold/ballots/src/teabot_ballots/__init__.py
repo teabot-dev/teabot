@@ -1,6 +1,6 @@
-"""teabot-polls. Imports only `teabot.sdk`.
+"""teabot-ballots. Imports only `teabot.sdk`.
 
-- `polls.hello` records a member's greeting in the plugin's own table and says how many they have made.
+- `ballots.hello` records a member's greeting in the plugin's own table and says how many they have made.
 """
 
 from typing import Annotated
@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from teabot.sdk import Context, EmptyConfig, Plugin
 
-plugin = Plugin("polls")
+plugin = Plugin("ballots")
 type Ctx = Context[EmptyConfig]
 
 

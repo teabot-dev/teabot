@@ -20,35 +20,35 @@ A teabot plugin is a small Python package: functions that become slash commands 
 In your instance's folder:
 
 ```bash
-uv run teabot new-plugin polls
+uv run teabot new-plugin ballots
 ```
 
 ```text
-created plugins/polls
-next: uv run --package teabot-polls pytest plugins/polls
+created plugins/ballots
+next: uv run --package teabot-ballots pytest plugins/ballots
 then try it in Discord: docker compose stop bot, then uv run teabot dev
-and in your server, /plugins enable plugin:polls
+and in your server, /plugins enable plugin:ballots
 ```
 
 It writes one package, with an example action called `hello`:
 
 ```text
-plugins/polls/
+plugins/ballots/
     pyproject.toml                      the package, and how teabot finds it
     README.md                           what it does, and every server it contacts
-    src/teabot_polls/
+    src/teabot_ballots/
         __init__.py                     the plugin
         migrations/0001_greetings.sql   its table
         py.typed                        tells type checkers the package has types
     tests/
-        test_polls.py                   its tests
-        test_polls_snapshot.py          a record of its commands, kept in snapshot.json
+        test_ballots.py                 its tests
+        test_ballots_snapshot.py        a record of its commands, kept in snapshot.json
 ```
 
 ## 2. Run its tests
 
 ```bash
-uv run --package teabot-polls pytest plugins/polls
+uv run --package teabot-ballots pytest plugins/ballots
 ```
 
 ```text
@@ -59,22 +59,22 @@ The tests run against your instance's Postgres, which `setup.sh` started. Each t
 
 ## 3. Read the plugin
 
-This is all of `src/teabot_polls/__init__.py`:
+This is all of `src/teabot_ballots/__init__.py`:
 
-```python title="plugins/polls/src/teabot_polls/__init__.py"
---8<-- "tests/docs/scaffold/polls/src/teabot_polls/__init__.py"
+```python title="plugins/ballots/src/teabot_ballots/__init__.py"
+--8<-- "tests/docs/scaffold/ballots/src/teabot_ballots/__init__.py"
 ```
 
-- `plugin = Plugin("polls")` is the plugin. Its id, `polls`, is the command's name: `/polls`.
-- `@plugin.action()` makes `hello` an action: the slash command `/polls hello`, and the AI assistant tool `polls_hello`.
+- `plugin = Plugin("ballots")` is the plugin. Its id, `ballots`, is the command's name: `/ballots`.
+- `@plugin.action()` makes `hello` an action: the slash command `/ballots hello`, and the AI assistant tool `ballots_hello`.
 - Its parameters after `ctx` are the command's options. The docstring's first line describes the command, and its `Args:` section describes each option.
 - `ctx` is the call: which server (`ctx.guild`), who asked (`ctx.actor`), and the plugin's database (`ctx.db`).
 - It returns a `Greeted`, and `render` is the reply the member sees.
 
 The tests call the action the way Discord would, permissions and all:
 
-```python title="plugins/polls/tests/test_polls.py"
---8<-- "tests/docs/scaffold/polls/tests/test_polls.py"
+```python title="plugins/ballots/tests/test_ballots.py"
+--8<-- "tests/docs/scaffold/ballots/tests/test_ballots.py"
 ```
 
 ## 4. Change it
@@ -100,13 +100,13 @@ uv run teabot dev
 `teabot dev` watches `plugins/` and `teabot.env`, and restarts the bot when a file changes. Each restart migrates the plugin and sends its commands to the servers where it is on. Stop it with ++ctrl+c++. Then turn the plugin on in your server:
 
 ```text
-/plugins enable plugin:polls
-/polls hello
+/plugins enable plugin:ballots
+/ballots hello
 ```
 
 teabot replies `Hi there! That is hello number 1.`
 
 ## Next
 
-- The [tutorial](tutorial.md) grows `polls` into a real plugin: options, votes, a job that posts the results, and a confirmed delete.
+- The [tutorial](tutorial.md) grows `ballots` into a real plugin: options, votes, a job that posts the results, and a confirmed delete.
 - The [reference](reference.md) has every part of a plugin in one page.

@@ -223,6 +223,15 @@ class _Registrar:
         self.job(f"on_{name}", handler)
 
 
+def _clash(plugin_id: str, group: Sequence[Candidate]) -> str:
+    """Who declares a shared ID, and the fix, since neither plugin loads until one goes."""
+    return (
+        f"declared by {' and '.join(c.origin for c in group)}, so neither loads. Uninstall one, or give it another "
+        f"ID. Data kept under {plugin_id} stays with the ID: if the plugin you keep isn't the one that wrote it, "
+        f"run `teabot plugins purge {plugin_id}` first."
+    )
+
+
 def _unique(candidates: Sequence[Candidate], report: LoadReport) -> dict[str, LoadablePlugin]:
     """Plugins whose id only one candidate declares. Unimportable and duplicated ones are reported."""
     by_id: defaultdict[str, list[Candidate]] = defaultdict(list)
@@ -236,7 +245,7 @@ def _unique(candidates: Sequence[Candidate], report: LoadReport) -> dict[str, Lo
     unique: dict[str, LoadablePlugin] = {}
     for plugin_id, group in by_id.items():
         if len(group) > 1:
-            report.fail(plugin_id, "duplicate_id", "declared by " + " and ".join(c.origin for c in group))
+            report.fail(plugin_id, "duplicate_id", _clash(plugin_id, group))
         else:
             unique[plugin_id] = group[0].plugin  # pyright: ignore[reportArgumentType]
     return unique

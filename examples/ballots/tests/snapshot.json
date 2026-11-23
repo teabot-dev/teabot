@@ -1,15 +1,15 @@
 {
   "commands": {
-    "description": "polls commands",
-    "name": "polls",
+    "description": "ballots commands",
+    "name": "ballots",
     "options": [
       {
-        "description": "Delete a poll and its votes.",
+        "description": "Delete a ballot and its votes.",
         "name": "delete",
         "options": [
           {
-            "description": "The poll's number, from /polls list.",
-            "name": "poll",
+            "description": "The ballot's number, from /ballots list.",
+            "name": "ballot",
             "required": true,
             "type": 4
           }
@@ -17,23 +17,23 @@
         "type": 1
       },
       {
-        "description": "The running polls.",
+        "description": "The running ballots.",
         "name": "list",
         "options": [],
         "type": 1
       },
       {
-        "description": "Start a poll.",
+        "description": "Start a ballot.",
         "name": "start",
         "options": [
           {
-            "description": "Where to post the poll.",
+            "description": "Where to post the ballot.",
             "name": "channel",
             "required": true,
             "type": 7
           },
           {
-            "description": "What the poll asks.",
+            "description": "What the ballot asks.",
             "max_length": 200,
             "name": "question",
             "required": true,
@@ -79,12 +79,12 @@
         "type": 1
       },
       {
-        "description": "Vote in a running poll, or change your vote.",
+        "description": "Vote in a running ballot, or change your vote.",
         "name": "vote",
         "options": [
           {
-            "description": "The poll's number, from /polls list.",
-            "name": "poll",
+            "description": "The ballot's number, from /ballots list.",
+            "name": "ballot",
             "required": true,
             "type": 4
           },
@@ -105,43 +105,43 @@
   "jobs": {
     "close": {
       "properties": {
-        "poll": {
-          "title": "Poll",
+        "ballot": {
+          "title": "Ballot",
           "type": "integer"
         }
       },
       "required": [
-        "poll"
+        "ballot"
       ],
-      "title": "PollsCloseInput",
+      "title": "BallotsCloseInput",
       "type": "object"
     }
   },
   "tools": {
-    "polls_delete": {
+    "ballots_delete": {
       "properties": {
+        "ballot": {
+          "description": "The ballot's number, from /ballots list.",
+          "title": "Ballot",
+          "type": "integer"
+        },
         "confirm": {
           "description": "The confirm value of a plan this tool returned. Leave it out to get a plan.",
           "type": "string"
-        },
-        "poll": {
-          "description": "The poll's number, from /polls list.",
-          "title": "Poll",
-          "type": "integer"
         }
       },
       "required": [
-        "poll"
+        "ballot"
       ],
-      "title": "PollsDeleteInput",
+      "title": "BallotsDeleteInput",
       "type": "object"
     },
-    "polls_list": {
+    "ballots_list": {
       "properties": {},
-      "title": "PollsListInput",
+      "title": "BallotsListInput",
       "type": "object"
     },
-    "polls_start": {
+    "ballots_start": {
       "$defs": {
         "Choice": {
           "maxLength": 100,
@@ -151,7 +151,7 @@
       },
       "properties": {
         "channel": {
-          "description": "Where to post the poll.",
+          "description": "Where to post the ballot.",
           "pattern": "^[1-9][0-9]{0,19}$",
           "title": "Channel",
           "type": "string"
@@ -204,7 +204,7 @@
           "description": "A fourth option."
         },
         "question": {
-          "description": "What the poll asks.",
+          "description": "What the ballot asks.",
           "maxLength": 200,
           "title": "Question",
           "type": "string"
@@ -216,29 +216,29 @@
         "option_1",
         "option_2"
       ],
-      "title": "PollsStartInput",
+      "title": "BallotsStartInput",
       "type": "object"
     },
-    "polls_vote": {
+    "ballots_vote": {
       "properties": {
+        "ballot": {
+          "description": "The ballot's number, from /ballots list.",
+          "title": "Ballot",
+          "type": "integer"
+        },
         "option": {
           "description": "The number of the option you choose.",
           "maximum": 4,
           "minimum": 1,
           "title": "Option",
           "type": "integer"
-        },
-        "poll": {
-          "description": "The poll's number, from /polls list.",
-          "title": "Poll",
-          "type": "integer"
         }
       },
       "required": [
-        "poll",
+        "ballot",
         "option"
       ],
-      "title": "PollsVoteInput",
+      "title": "BallotsVoteInput",
       "type": "object"
     }
   }

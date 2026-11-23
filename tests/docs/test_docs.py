@@ -59,10 +59,10 @@ def test_the_env_example_names_every_setting() -> None:
 
 
 def test_the_first_plugin_page_shows_what_new_plugin_writes(tmp_path: Path) -> None:
-    write_package(tmp_path / "polls", "polls")
-    committed = ROOT / "tests/docs/scaffold/polls"
+    write_package(tmp_path / "ballots", "ballots")
+    committed = ROOT / "tests/docs/scaffold/ballots"
     rendered = sorted(
-        p.relative_to(tmp_path / "polls") for p in (tmp_path / "polls").rglob("*") if p.is_file()
+        p.relative_to(tmp_path / "ballots") for p in (tmp_path / "ballots").rglob("*") if p.is_file()
     )
     on_disk = sorted(
         p.relative_to(committed) for p in committed.rglob("*") if p.is_file() and "__pycache__" not in p.parts
@@ -75,5 +75,5 @@ def test_the_first_plugin_page_shows_what_new_plugin_writes(tmp_path: Path) -> N
     def committed_text(p: Path) -> str:
         return (committed / p).read_text().replace('"teabot>=1.0,<2"', here)
 
-    differ = [p for p in rendered if (tmp_path / "polls" / p).read_text() != committed_text(p)]
+    differ = [p for p in rendered if (tmp_path / "ballots" / p).read_text() != committed_text(p)]
     assert differ == [], "re-render it: see tests/docs/README.md"

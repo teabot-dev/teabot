@@ -8,9 +8,9 @@ This covers `teabot.sdk` 1.x, which follows semantic versioning: a change that b
 
 ```mermaid
 flowchart LR
-    slash["Slash command<br>/polls vote"] --> path
-    mcp["AI assistant tool<br>polls_vote"] --> path
-    api["Service API<br>polls.vote"] --> path
+    slash["Slash command<br>/ballots vote"] --> path
+    mcp["AI assistant tool<br>ballots_vote"] --> path
+    api["Service API<br>ballots.vote"] --> path
     path["One call path<br>input checks, permissions,<br>plans, audit log"] --> fn["Your function<br>async def vote(ctx, ...)"]
     fn --> db[("Your tables,<br>this server's rows")]
     fn --> discord["Discord<br>ctx.guild"]

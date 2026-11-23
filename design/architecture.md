@@ -71,7 +71,7 @@ docs/                           the documentation site's pages, built with Zensi
     use/                        using teabot in a server
     host/                       running an instance
     plugins/                    writing plugins
-examples/polls/                 the tutorial's plugin, tested like any other
+examples/ballots/               the tutorial's plugin, tested like any other
 design/
     design.md                   the numbered design decisions
     architecture.md             this file
